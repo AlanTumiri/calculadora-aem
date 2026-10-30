@@ -285,7 +285,7 @@ summary{cursor:pointer;font-family:var(--disp);font-size:14px;font-weight:700;co
     </div>
   </div>
 
-  <p class="foot">AEM = árbol que conecta todos los nodos, sin ciclos, con el menor (o mayor) peso total. Aristas = nodos − 1. · <b>v7</b></p>
+  <p class="foot">AEM = árbol que conecta todos los nodos, sin ciclos, con el menor (o mayor) peso total. Aristas = nodos − 1. · <b>v8</b></p>
 </div>
 
 <!-- AJUSTES -->
@@ -634,12 +634,13 @@ async function resizeToB64(file,maxDim=1600){
 }
 
 async function callGemini(model,apiKey,media,b64,prompt){
-  const url="https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(model)+":generateContent?key="+encodeURIComponent(apiKey);
+  const url="https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(model)+":generateContent";
   let resp;
   try{
+    // llave en encabezado (sirve para llaves AIza... y para las nuevas AQ...)
     resp=await fetch(url,{
       method:"POST",
-      headers:{"content-type":"application/json"},
+      headers:{"content-type":"application/json","x-goog-api-key":apiKey},
       body:JSON.stringify({
         contents:[{parts:[{text:prompt},{inline_data:{mime_type:media,data:b64}}]}],
         generationConfig:{temperature:0}
