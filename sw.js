@@ -1,4 +1,4 @@
-const CACHE = "aem-v1";
+const CACHE = "aem-v2";
 const ASSETS = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", e => {
@@ -9,17 +9,15 @@ self.addEventListener("activate", e => {
 });
 self.addEventListener("fetch", e => {
   const url = new URL(e.request.url);
-  // nunca cachear llamadas a la API de Claude
-  if (url.hostname.endsWith("anthropic.com")) return;
+  // nunca interceptar llamadas a las APIs de IA
+  if (url.hostname.endsWith("googleapis.com") || url.hostname.endsWith("anthropic.com")) return;
   if (e.request.method !== "GET") return;
-  // app local: cache primero; resto (CDN): red con respaldo a cache
-  if (url.origin === location.origin) {
-    e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
-  } else {
-    e.respondWith(fetch(e.request).then(r => {
+  // RED PRIMERO: siempre intenta traer la última versión; si no hay internet, usa la copia guardada
+  e.respondWith(
+    fetch(e.request).then(r => {
       const copy = r.clone();
       caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
       return r;
-    }).catch(() => caches.match(e.request)));
-  }
+    }).catch(() => caches.match(e.request).then(r => r || caches.match("index.html")))
+  );
 });
