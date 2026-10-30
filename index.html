@@ -581,32 +581,46 @@ $("uploadBtn").onclick=()=>pickImage("photoLib");
   await scanPhoto(file);
 }));
 
-function fileToResizedB64(file,maxDim=1600){
-  return new Promise((res,rej)=>{
-    const url=URL.createObjectURL(file);
-    const img=new Image();
-    img.onload=()=>{
-      let w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
-      const sc=Math.min(1,maxDim/Math.max(w,h));
-      w=Math.max(1,Math.round(w*sc)); h=Math.max(1,Math.round(h*sc));
-      const c=document.createElement("canvas");c.width=w;c.height=h;
-      c.getContext("2d").drawImage(img,0,0,w,h);
-      URL.revokeObjectURL(url);
-      try{res(c.toDataURL("image/jpeg",0.9));}catch(e){rej(new Error("No se pudo procesar la imagen."));}
-    };
-    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("No se pudo abrir la imagen. Prueba con otra o una JPG/PNG."));};
+function readAsDataURL(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(new Error("No se pudo leer el archivo."));r.readAsDataURL(file);});}
+async function decodeImage(file){
+  if(window.createImageBitmap){try{return await createImageBitmap(file);}catch(e){}}
+  return await new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file);const img=new Image();
+    img.onload=()=>{img._url=url;res(img);};
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("decode"));};
     img.src=url;
   });
+}
+async function resizeToB64(file,maxDim=1600){
+  const src=await decodeImage(file);
+  let w=src.width||src.naturalWidth, h=src.height||src.naturalHeight;
+  if(!w||!h)throw new Error("tamaño inválido");
+  const sc=Math.min(1,maxDim/Math.max(w,h));
+  w=Math.max(1,Math.round(w*sc));h=Math.max(1,Math.round(h*sc));
+  const c=document.createElement("canvas");c.width=w;c.height=h;
+  c.getContext("2d").drawImage(src,0,0,w,h);
+  if(src._url)URL.revokeObjectURL(src._url);
+  if(src.close)src.close();
+  return c.toDataURL("image/jpeg",0.9);
 }
 
 async function scanPhoto(file){
   const apiKey=getKey(); const model=getModel();
   $("scanLoading").hidden=false; flashScan(""); $("scanBtn").disabled=true; $("uploadBtn").disabled=true;
   try{
-    const dataUrl=await fileToResizedB64(file);
-    const m=/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.*)$/.exec(dataUrl);
-    if(!m) throw new Error("No se pudo leer la imagen.");
-    const media=m[1], b64=m[2];
+    let media,b64;
+    try{
+      const dataUrl=await resizeToB64(file);
+      const m=/^data:([^;]+);base64,(.*)$/.exec(dataUrl);
+      media=m[1]; b64=m[2];
+    }catch(_){
+      // formato que el navegador no redibuja (p.ej. HEIC): enviar bytes originales
+      const dataUrl=await readAsDataURL(file);
+      const m=/^data:([^;]+);base64,(.*)$/.exec(dataUrl);
+      if(!m) throw new Error("Formato de imagen no soportado.");
+      media=(file.type&&file.type.indexOf("image/")===0)?file.type:(m[1]||"image/jpeg");
+      b64=m[2];
+    }
     const prompt=`Analiza esta foto de un grafo dibujado a mano (nodos numerados y aristas con un peso/número junto a cada línea). `+
       `Devuelve SOLO un objeto JSON válido, sin texto adicional ni markdown, con esta forma exacta: `+
       `{"nodes": <cantidad de nodos, entero>, "edges": [[origen, destino, peso], ...]}. `+
