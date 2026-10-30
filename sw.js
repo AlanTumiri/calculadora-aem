@@ -1,4 +1,4 @@
-const CACHE = "aem-v2";
+const CACHE = "aem-v3";
 const ASSETS = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", e => {

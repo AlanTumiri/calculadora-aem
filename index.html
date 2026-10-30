@@ -68,6 +68,8 @@ input::placeholder{color:#b7afca}
 .btn-mint{background:var(--mint);color:var(--mint-ink)}
 .btn-pink{background:var(--pink);color:var(--pink-ink);width:100%;justify-content:center;margin-top:14px;
   display:flex;align-items:center;gap:8px}
+.scan-row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.scan-row .btn{flex:1;min-width:140px;margin-top:0}
 .btn-link{background:none;color:var(--accent-ink);padding:10px 4px;font-weight:600}
 .btn-link:hover{text-decoration:underline}
 .nav{display:flex;justify-content:space-between;gap:10px;margin-top:22px;flex-wrap:wrap}
@@ -171,11 +173,15 @@ summary{cursor:pointer;font-family:var(--disp);font-size:14px;font-weight:700;co
       <div class="big-input"><input id="ncount" class="mono" inputmode="numeric" value="6"></div>
       <div class="err" id="err1"></div>
 
-      <div class="divider">o escanea tu grafo</div>
-      <button class="btn btn-pink" id="scanBtn">📷 Escanear foto del grafo</button>
+      <div class="divider">o lee tu grafo de una imagen</div>
+      <div class="scan-row">
+        <button class="btn btn-pink" id="scanBtn">📷 Tomar foto</button>
+        <button class="btn btn-pink" id="uploadBtn">🖼 Cargar foto</button>
+      </div>
       <div class="err" id="errScan"></div>
-      <div id="scanLoading" hidden class="loading"><span class="spin"></span><span>Leyendo la foto con Claude…</span></div>
-      <input type="file" id="photo" accept="image/*" capture="environment" hidden>
+      <div id="scanLoading" hidden class="loading"><span class="spin"></span><span>Leyendo la imagen con Gemini…</span></div>
+      <input type="file" id="photoCam" accept="image/*" capture="environment" hidden>
+      <input type="file" id="photoLib" accept="image/*" hidden>
 
       <div class="nav">
         <button class="btn btn-link" id="exampleBtn">Ver ejemplo resuelto</button>
@@ -562,24 +568,42 @@ $("clearKey").onclick=()=>{store("aem_key",null);$("apiKey").value="";};
 
 function flashScan(msg){$("errScan").textContent=msg;}
 
-$("scanBtn").onclick=()=>{
+function pickImage(inputId){
   if(!getKey()){ flashScan("No hay API key configurada. Pega una en Ajustes (⚙)."); openSettings(); return; }
-  flashScan(""); $("photo").click();
-};
-$("photo").addEventListener("change",async e=>{
+  flashScan(""); $(inputId).click();
+}
+$("scanBtn").onclick=()=>pickImage("photoCam");
+$("uploadBtn").onclick=()=>pickImage("photoLib");
+["photoCam","photoLib"].forEach(id=>$(id).addEventListener("change",async e=>{
   const file=e.target.files&&e.target.files[0];
   e.target.value="";
   if(!file)return;
   await scanPhoto(file);
-});
+}));
 
-function readAsDataURL(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});}
+function fileToResizedB64(file,maxDim=1600){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{
+      let w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
+      const sc=Math.min(1,maxDim/Math.max(w,h));
+      w=Math.max(1,Math.round(w*sc)); h=Math.max(1,Math.round(h*sc));
+      const c=document.createElement("canvas");c.width=w;c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);
+      try{res(c.toDataURL("image/jpeg",0.9));}catch(e){rej(new Error("No se pudo procesar la imagen."));}
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("No se pudo abrir la imagen. Prueba con otra o una JPG/PNG."));};
+    img.src=url;
+  });
+}
 
 async function scanPhoto(file){
   const apiKey=getKey(); const model=getModel();
-  $("scanLoading").hidden=false; flashScan(""); $("scanBtn").disabled=true;
+  $("scanLoading").hidden=false; flashScan(""); $("scanBtn").disabled=true; $("uploadBtn").disabled=true;
   try{
-    const dataUrl=await readAsDataURL(file);
+    const dataUrl=await fileToResizedB64(file);
     const m=/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.*)$/.exec(dataUrl);
     if(!m) throw new Error("No se pudo leer la imagen.");
     const media=m[1], b64=m[2];
@@ -614,7 +638,7 @@ async function scanPhoto(file){
   }catch(err){
     flashScan("No se pudo leer: "+(err.message||err));
   }finally{
-    $("scanLoading").hidden=true; $("scanBtn").disabled=false;
+    $("scanLoading").hidden=true; $("scanBtn").disabled=false; $("uploadBtn").disabled=false;
   }
 }
 function extractJSON(text){
