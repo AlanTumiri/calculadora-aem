@@ -309,7 +309,8 @@ summary{cursor:pointer;font-family:var(--disp);font-size:14px;font-weight:700;co
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
 "use strict";
-const EXAMPLE6=[["1","2",4],["1","3",3],["2","3",1],["2","4",5],["3","4",6],["3","5",2],["4","5",7],["4","6",8],["5","6",4]].map(([a,b,w])=>({a,b,w}));
+const EXAMPLE=[["1","2",1],["1","3",3],["1","4",2],["1","5",5],["2","3",4],["2","4",7],["2","5",6],["3","4",8],["3","6",11],["4","6",10],["4","7",9],["5","7",12],["6","7",13]].map(([a,b,w])=>({a,b,w}));
+const EXAMPLE_N=7;
 let N=6, edges=[], method="kruskal", goal="min", solution=null, cur=1;
 const DEFAULT_MODEL="gemini-2.0-flash";
 const EMBEDDED_KEY=atob("QVEuQWI4Uk42S1F4em1qci1mRmx1bHhKTm56U0Vxb0stVHFEZjFYMTl6VzFVUHhqdFFqU1E=");
@@ -731,7 +732,7 @@ $("gmin").onclick=()=>setGoal("min");
 $("gmax").onclick=()=>setGoal("max");
 $("showW").onchange=()=>{const w=THREEctx&&THREEctx.group.children.find(c=>c.name==="weights");if(w)w.visible=$("showW").checked;};
 $("anim").onclick=animateMST;
-$("exampleBtn").onclick=()=>{N=6;edges=EXAMPLE6.map(e=>({...e}));setMethod("kruskal");setGoal("min");$("ncount").value="6";goto(4);};
+$("exampleBtn").onclick=()=>{N=EXAMPLE_N;edges=EXAMPLE.map(e=>({...e}));setMethod("kruskal");setGoal("min");$("ncount").value=String(EXAMPLE_N);goto(4);};
 
 setMethod("kruskal");setGoal("min");goto(0);
 
