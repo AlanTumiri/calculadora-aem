@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Calculadora de AEM</title>
+<meta name="theme-color" content="#c3b4ee">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="AEM">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Nunito:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#f7f4fb; --surface:#ffffff; --surface-2:#f1ecf9; --surface-3:#e9e3f5;
+  --border:#e8e1f3; --fg:#53496b; --muted:#938cab;
+  --accent:#c3b4ee; --accent-ink:#4a3c84; --accent-soft:#efeafb;
+  --mint:#aee3cf; --mint-ink:#2f7a5f; --pink:#f3b9d6; --pink-ink:#9c3e6e;
+  --amber:#e7b64d; --amber-ink:#8a6410; --amber-soft:#fbf1da;
+  --danger:#e38a9c; --danger-ink:#9c3650;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --sans:"Nunito",system-ui,sans-serif;
+  --disp:"Quicksand",var(--sans);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);line-height:1.55;
+  padding-top:env(safe-area-inset-top,0);padding-bottom:env(safe-area-inset-bottom,0)}
+.wrap{max-width:860px;margin:0 auto;padding-block:22px 54px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+h1{font-family:var(--disp);font-size:24px;font-weight:700;margin:0;letter-spacing:-.01em;color:var(--accent-ink);text-wrap:balance}
+.sub{color:var(--muted);font-size:14px;margin:7px 0 0}
+.gear{flex:none;background:var(--surface);border:none;border-radius:12px;width:44px;height:44px;cursor:pointer;
+  font-size:20px;color:var(--accent-ink);display:grid;place-items:center}
+
+.prog{display:flex;gap:8px;margin:22px 0 16px;flex-wrap:wrap}
+.pstep{display:flex;align-items:center;gap:9px;flex:1;min-width:130px;background:var(--surface);border-radius:14px;padding:11px 13px}
+.pstep .dot{width:28px;height:28px;border-radius:50%;flex:none;display:grid;place-items:center;
+  font-family:var(--disp);font-weight:700;font-size:14px;background:var(--surface-3);color:var(--muted)}
+.pstep .nm{font-family:var(--disp);font-weight:600;font-size:13.5px;color:var(--muted)}
+.pstep.active{background:var(--accent-soft)}
+.pstep.active .dot{background:var(--accent);color:var(--accent-ink)}
+.pstep.active .nm{color:var(--accent-ink)}
+.pstep.done .dot{background:var(--mint);color:var(--mint-ink)}
+.pstep.done .nm{color:var(--fg)}
+
+.card{background:var(--surface);border-radius:18px;padding:22px}
+.step h2{font-family:var(--disp);font-size:19px;font-weight:700;color:var(--accent-ink);margin:0 0 4px}
+.step p.hint{color:var(--muted);font-size:14px;margin:0 0 18px}
+
+label.fld{display:block;font-size:13px;color:var(--muted);font-weight:600;margin:0 0 5px}
+input,select{font-family:var(--mono);font-size:16px;color:var(--fg);background:var(--surface-2);
+  border:none;border-radius:11px;padding:11px 13px;width:100%;outline:none;transition:box-shadow .14s}
+input:focus,select:focus{box-shadow:0 0 0 3px var(--accent)}
+input::placeholder{color:#b7afca}
+.big-input input{font-size:22px;text-align:center;padding:16px}
+
+.btn{font-family:var(--disp);font-size:15px;font-weight:600;border:none;border-radius:12px;
+  padding:12px 20px;cursor:pointer;transition:filter .14s,transform .05s}
+.btn:hover{filter:brightness(1.04)}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--accent);color:var(--accent-ink)}
+.btn-ghost{background:var(--surface-2);color:var(--fg)}
+.btn-mint{background:var(--mint);color:var(--mint-ink)}
+.btn-pink{background:var(--pink);color:var(--pink-ink);width:100%;justify-content:center;margin-top:14px;
+  display:flex;align-items:center;gap:8px}
+.btn-link{background:none;color:var(--accent-ink);padding:10px 4px;font-weight:600}
+.btn-link:hover{text-decoration:underline}
+.nav{display:flex;justify-content:space-between;gap:10px;margin-top:22px;flex-wrap:wrap}
+.add-row{display:flex;gap:10px;align-items:flex-end;margin-top:6px}
+.add-row>div{flex:1;min-width:0}
+.add-row .btn{flex:none;padding:11px 16px}
+.err{color:var(--danger-ink);font-size:13px;margin-top:8px;min-height:15px}
+.divider{display:flex;align-items:center;gap:12px;margin:20px 0 4px;color:var(--muted);font-size:13px}
+.divider::before,.divider::after{content:"";height:1px;background:var(--border);flex:1}
+
+.elist{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:240px;overflow:auto}
+.elist li{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface-2);
+  border-radius:11px;padding:8px 9px 8px 14px;font-family:var(--mono);font-size:15px}
+.elist .x{background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1;padding:0 8px;border-radius:8px}
+.elist .x:hover{color:var(--danger-ink)}
+.empty{color:var(--muted);font-size:13.5px;font-style:italic;margin:16px 0 0;text-align:center}
+.count{font-size:13px;color:var(--muted);margin-top:10px;text-align:center}
+
+.seg{display:flex;gap:5px;background:var(--surface-2);border-radius:13px;padding:4px;margin-top:4px}
+.seg button{flex:1;border:none;background:none;font-family:var(--disp);font-size:15px;font-weight:600;
+  color:var(--muted);padding:11px;border-radius:10px;cursor:pointer;transition:all .14s}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--accent-ink);box-shadow:0 2px 8px rgba(120,100,180,.14)}
+
+.scene-wrap{position:relative;background:#ece6f7;border-radius:18px;overflow:hidden}
+#scene{width:100%;height:420px;display:block}
+@media (max-width:640px){#scene{height:320px}}
+.scene-hint{position:absolute;left:14px;bottom:11px;color:#9a8fc0;font-size:11.5px;font-family:var(--mono);pointer-events:none}
+.toast{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:rgba(74,60,132,.92);color:#fff;
+  font-family:var(--disp);font-weight:600;font-size:13px;padding:8px 15px;border-radius:12px;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;max-width:90%;text-align:center}
+.toast.show{opacity:1}
+.scene-tools{position:absolute;right:11px;top:11px;display:flex;gap:7px;align-items:center}
+.scene-tools .chip{font-family:var(--disp);font-weight:600;font-size:12.5px;color:var(--accent-ink);
+  background:rgba(255,255,255,.82);border-radius:11px;padding:7px 11px;cursor:pointer;display:flex;align-items:center;gap:7px;user-select:none}
+.scene-tools .chip input{width:auto;background:none;box-shadow:none;accent-color:var(--pink);margin:0}
+
+.rhead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 0 0;flex-wrap:wrap}
+.total{display:flex;align-items:baseline;gap:11px;flex-wrap:wrap}
+.total .big{font-family:var(--disp);font-size:40px;font-weight:700;color:var(--pink-ink);line-height:1}
+.total .lbl{font-size:13.5px;color:var(--muted)}
+.pills{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
+.pill{font-family:var(--mono);font-size:13.5px;background:var(--mint);color:var(--mint-ink);padding:5px 11px;border-radius:10px}
+.pill.max{background:#dbe7f8;color:#3f5f9e}
+.warn{background:var(--amber-soft);color:var(--amber-ink);font-size:13.5px;padding:11px 13px;border-radius:12px;margin-top:14px}
+
+.tbl-scroll{overflow-x:auto;margin-top:8px}
+table{border-collapse:separate;border-spacing:0;font-family:var(--mono);font-size:13px;width:100%}
+th,td{border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:7px 10px;text-align:center;white-space:nowrap}
+th{background:var(--surface-2);font-weight:600;color:var(--accent-ink)}
+thead th:first-child,tbody th{background:var(--surface-2)}
+table tr td:first-child,table tr th:first-child{border-left:1px solid var(--border)}
+table thead tr th{border-top:1px solid var(--border)}
+td.tree{background:var(--mint);color:var(--mint-ink)}
+td.inf{color:#cfc7e4}
+td.chosen{background:var(--pink);color:var(--pink-ink);font-weight:600}
+tr.add td{color:var(--mint-ink)}
+tr.add .dec{font-weight:600}
+tr.cyc .dec{color:var(--danger-ink)}
+tr.skip td{color:#cfc7e4}
+.lead{background:var(--surface-2);color:var(--muted)}
+details{margin-top:20px}
+summary{cursor:pointer;font-family:var(--disp);font-size:14px;font-weight:700;color:var(--accent-ink)}
+.foot{color:var(--muted);font-size:12.5px;margin-top:28px;text-align:center}
+
+/* modal ajustes */
+.ov{position:fixed;inset:0;background:rgba(40,30,70,.45);display:none;align-items:flex-end;justify-content:center;z-index:50;padding:0}
+.ov.show{display:flex}
+.sheet{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:560px;padding:24px 20px calc(26px + env(safe-area-inset-bottom,0px));
+  max-height:90vh;overflow:auto}
+@media (min-width:560px){.ov{align-items:center}.sheet{border-radius:20px}}
+.sheet h3{font-family:var(--disp);font-size:18px;font-weight:700;color:var(--accent-ink);margin:0 0 4px}
+.sheet p{font-size:13.5px;color:var(--muted);margin:0 0 16px}
+.sheet .note{background:var(--amber-soft);color:var(--amber-ink);font-size:12.5px;padding:10px 12px;border-radius:11px;margin:14px 0}
+.sheet a{color:var(--accent-ink);font-weight:600}
+.loading{display:flex;align-items:center;gap:10px;color:var(--accent-ink);font-weight:600;font-family:var(--disp);margin-top:14px}
+.spin{width:18px;height:18px;border:3px solid var(--surface-3);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>Calculadora de árbol de expansión mínima</h1>
+      <p class="sub">Define tus datos (a mano o con una foto) y obtén el grafo 3D con su solución.</p>
+    </div>
+    <button class="gear" id="openSettings" aria-label="Ajustes">⚙</button>
+  </div>
+
+  <div class="prog">
+    <div class="pstep" id="p1"><span class="dot">1</span><span class="nm">Nodos</span></div>
+    <div class="pstep" id="p2"><span class="dot">2</span><span class="nm">Aristas</span></div>
+    <div class="pstep" id="p3"><span class="dot">3</span><span class="nm">Método</span></div>
+    <div class="pstep" id="p4"><span class="dot">4</span><span class="nm">Resultado</span></div>
+  </div>
+
+  <div class="card" id="wizard">
+    <section class="step" id="step1">
+      <h2>Paso 1 · ¿Cuántos nodos?</h2>
+      <p class="hint">Se numerarán del 1 en adelante. Podrás conectarlos en el siguiente paso.</p>
+      <div class="big-input"><input id="ncount" class="mono" inputmode="numeric" value="6"></div>
+      <div class="err" id="err1"></div>
+
+      <div class="divider">o escanea tu grafo</div>
+      <button class="btn btn-pink" id="scanBtn">📷 Escanear foto del grafo</button>
+      <div class="err" id="errScan"></div>
+      <div id="scanLoading" hidden class="loading"><span class="spin"></span><span>Leyendo la foto con Claude…</span></div>
+      <input type="file" id="photo" accept="image/*" capture="environment" hidden>
+
+      <div class="nav">
+        <button class="btn btn-link" id="exampleBtn">Ver ejemplo resuelto</button>
+        <button class="btn btn-primary" id="to2">Siguiente →</button>
+      </div>
+    </section>
+
+    <section class="step" id="step2" hidden>
+      <h2>Paso 2 · Conecta los nodos</h2>
+      <p class="hint">Agrega una arista a la vez: de qué nodo a qué nodo y su peso. Si viniste de una foto, revisa que todo esté bien.</p>
+      <div class="add-row">
+        <div><label class="fld" for="ea">Origen</label><input id="ea" class="mono" placeholder="1"></div>
+        <div><label class="fld" for="eb">Destino</label><input id="eb" class="mono" placeholder="2"></div>
+        <div><label class="fld" for="ew">Peso</label><input id="ew" class="mono" inputmode="decimal" placeholder="4"></div>
+        <button class="btn btn-mint" id="add">Agregar</button>
+      </div>
+      <div class="err" id="err2"></div>
+      <ul class="elist" id="elist"></ul>
+      <p class="empty" id="empty" hidden>Aún no hay aristas. Agrega la primera arriba.</p>
+      <p class="count" id="count"></p>
+      <div class="nav">
+        <button class="btn btn-ghost" id="back1">← Atrás</button>
+        <button class="btn btn-primary" id="to3">Siguiente →</button>
+      </div>
+    </section>
+
+    <section class="step" id="step3" hidden>
+      <h2>Paso 3 · Objetivo y método</h2>
+      <p class="hint">Elige si buscas el árbol de menor o mayor peso, y con qué método ver los pasos.</p>
+      <label class="fld">Objetivo</label>
+      <div class="seg" role="group" aria-label="Objetivo">
+        <button id="gmin" aria-pressed="true">Árbol mínimo</button>
+        <button id="gmax" aria-pressed="false">Árbol máximo</button>
+      </div>
+      <label class="fld" style="margin-top:16px">Método</label>
+      <div class="seg" role="group" aria-label="Método">
+        <button id="mk" aria-pressed="true">Kruskal</button>
+        <button id="mp" aria-pressed="false">Prim</button>
+      </div>
+      <div id="startWrap" style="margin-top:14px" hidden>
+        <label class="fld" for="start">Nodo inicial (Prim)</label>
+        <select id="start"></select>
+      </div>
+      <div class="nav">
+        <button class="btn btn-ghost" id="back2">← Atrás</button>
+        <button class="btn btn-primary" id="generate">Generar grafo y solución ✦</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="step4" hidden>
+    <div class="scene-wrap">
+      <canvas id="scene"></canvas>
+      <div class="scene-tools">
+        <label class="chip"><input type="checkbox" id="showW" checked> pesos</label>
+        <span class="chip" id="anim">▶ animar</span>
+      </div>
+      <div class="scene-hint">arrastra para rotar · rueda para acercar</div>
+      <div class="toast" id="toast"></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="rhead">
+        <div class="total"><span class="big" id="total">—</span><span class="lbl" id="totlbl">peso total mínimo</span></div>
+        <button class="btn btn-ghost" id="editData">← Editar datos</button>
+      </div>
+      <div id="warn"></div>
+      <div class="pills" id="pills"></div>
+      <details open>
+        <summary id="stepsTitle">Pasos</summary>
+        <div class="tbl-scroll" id="steps"></div>
+      </details>
+      <details>
+        <summary>Matriz de adyacencia</summary>
+        <div class="tbl-scroll" id="matrix"></div>
+      </details>
+    </div>
+  </div>
+
+  <p class="foot">AEM = árbol que conecta todos los nodos, sin ciclos, con el menor (o mayor) peso total. Aristas = nodos − 1.</p>
+</div>
+
+<!-- AJUSTES -->
+<div class="ov" id="settings">
+  <div class="sheet">
+    <h3>Ajustes · API de Claude</h3>
+    <p>Para leer fotos, la app usa tu propia llave de Anthropic. Se guarda solo en este dispositivo, nunca se sube a ningún lado.</p>
+    <label class="fld" for="apiKey">API key (empieza con sk-ant-…)</label>
+    <input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off">
+    <label class="fld" for="model" style="margin-top:14px">Modelo</label>
+    <input id="model" class="mono" placeholder="claude-3-5-sonnet-20241022">
+    <div class="note">La llave se crea en <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a> → API Keys. Cada foto consume saldo de tu cuenta. Si el modelo da error, cámbialo por el actual (ver <a href="https://docs.anthropic.com/en/docs/about-claude/models" target="_blank" rel="noopener">lista de modelos</a>).</div>
+    <div class="nav">
+      <button class="btn btn-ghost" id="clearKey">Borrar llave</button>
+      <button class="btn btn-primary" id="saveKey">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+"use strict";
+const EXAMPLE6=[["1","2",4],["1","3",3],["2","3",1],["2","4",5],["3","4",6],["3","5",2],["4","5",7],["4","6",8],["5","6",4]].map(([a,b,w])=>({a,b,w}));
+let N=6, edges=[], method="kruskal", goal="min", solution=null, cur=1;
+const DEFAULT_MODEL="claude-3-5-sonnet-20241022";
+
+const $=id=>document.getElementById(id);
+const fmt=n=>Number.isInteger(n)?String(n):String(+n.toFixed(2));
+const numKey=x=>{const n=parseFloat(x);return isNaN(n)?[1,String(x)]:[0,n];};
+const cmp=(x,y)=>{const[ta,va]=numKey(x),[tb,vb]=numKey(y);return ta-tb||(ta?String(va).localeCompare(vb):va-vb);};
+function declared(){const a=[];for(let i=1;i<=N;i++)a.push(String(i));return a;}
+function allNodes(){const s=new Set(declared());edges.forEach(e=>{s.add(e.a);s.add(e.b)});return [...s].sort(cmp);}
+const key=(a,b)=>a<b?a+"|"+b:b+"|"+a;
+
+function store(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v);}catch(e){}}
+function load(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+
+/* ---------- algoritmos ---------- */
+function kruskal(E,NODES,goal){
+  const dir=goal==="max"?-1:1;
+  const p={};NODES.forEach(n=>p[n]=n);
+  const f=x=>p[x]===x?x:(p[x]=f(p[x]));
+  const es=[...E].sort((a,b)=>dir*(a.w-b.w)||numKey(a.a)[1]-numKey(b.a)[1]||numKey(a.b)[1]-numKey(b.b)[1]);
+  const mst=[],steps=[];let tot=0,k=0,done=false;
+  for(const e of es){
+    if(done){steps.push({e,d:"skip"});continue;}
+    const ra=f(e.a),rb=f(e.b);
+    if(ra!==rb){p[ra]=rb;mst.push(e);tot+=e.w;k++;steps.push({e,d:"add",k});if(k===NODES.length-1)done=true;}
+    else steps.push({e,d:"cycle"});
+  }
+  return {N:NODES,mst,tot,steps,kind:"kruskal",goal,connected:mst.length===NODES.length-1};
+}
+function prim(E,start,NODES,goal){
+  const max=goal==="max";
+  if(!NODES.includes(start))start=NODES[0];
+  const adj={};NODES.forEach(n=>adj[n]=[]);
+  E.forEach(e=>{adj[e.a].push([e.b,e.w]);adj[e.b].push([e.a,e.w]);});
+  const dist={},par={},inT={};NODES.forEach(n=>{dist[n]=max?-Infinity:Infinity;par[n]=null;inT[n]=false;});
+  dist[start]=max?Infinity:0;
+  const mst=[],iters=[];let tot=0;
+  for(let step=0;step<NODES.length;step++){
+    let u=null,best=max?-Infinity:Infinity;
+    NODES.forEach(n=>{if(!inT[n]&&(max?dist[n]>best:dist[n]<best)){best=dist[n];u=n;}});
+    if(u===null)break;
+    inT[u]=true;
+    let arista="—",peso="";
+    if(par[u]!==null){mst.push({a:par[u],b:u,w:dist[u]});tot+=dist[u];arista=par[u]+"–"+u;peso=dist[u];}
+    const snap={};NODES.forEach(n=>snap[n]= inT[n] ? "tree" : (!isFinite(dist[n])?"inf":dist[n]));
+    snap[u]="chosen:"+ (par[u]===null?0:dist[u]);
+    iters.push({chosen:u,arista,peso:par[u]===null?"":peso,snap});
+    adj[u].forEach(([v,w])=>{if(!inT[v]&&(max?w>dist[v]:w<dist[v])){dist[v]=w;par[v]=u;}});
+  }
+  const reached=NODES.filter(n=>inT[n]).length;
+  return {N:NODES,mst,tot,iters,kind:"prim",start,goal,connected:reached===NODES.length};
+}
+
+/* ---------- navegación ---------- */
+function goto(s){
+  cur=s;
+  $("wizard").hidden=(s===4);
+  $("step4").hidden=(s!==4);
+  $("step1").hidden=s!==1;$("step2").hidden=s!==2;$("step3").hidden=s!==3;
+  [1,2,3,4].forEach(i=>{const el=$("p"+i);el.classList.toggle("active",i===s);el.classList.toggle("done",i<s);});
+  if(s===2)renderEdges();
+  if(s===3)refreshStart();
+  if(s===4)generate();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+/* ---------- UI datos ---------- */
+function renderEdges(){
+  const ul=$("elist");ul.innerHTML="";
+  $("empty").hidden=edges.length>0;
+  edges.forEach((e,i)=>{
+    const li=document.createElement("li");
+    const s=document.createElement("span");s.textContent=`${e.a} — ${e.b}  ·  ${e.w}`;
+    const b=document.createElement("button");b.className="x";b.textContent="×";b.title="Quitar";
+    b.onclick=()=>{edges.splice(i,1);renderEdges();};
+    li.append(s,b);ul.append(li);
+  });
+  $("count").textContent=edges.length?`${edges.length} arista${edges.length>1?"s":""} · un árbol necesita ${Math.max(N-1,0)}`:"";
+}
+function refreshStart(){
+  const sel=$("start");const c=sel.value;sel.innerHTML="";
+  allNodes().forEach(n=>{const o=document.createElement("option");o.value=n;o.textContent=n;sel.append(o);});
+  if([...sel.options].some(o=>o.value===c))sel.value=c;
+}
+function addEdge(){
+  const a=$("ea").value.trim(),b=$("eb").value.trim(),wv=$("ew").value.trim();
+  const err=$("err2");err.textContent="";
+  if(!a||!b){err.textContent="Escribe origen y destino.";return;}
+  if(a===b){err.textContent="Origen y destino deben ser distintos.";return;}
+  const ia=parseInt(a,10),ib=parseInt(b,10);
+  if(!(ia>=1&&ia<=N&&ib>=1&&ib<=N)){err.textContent=`Los nodos deben estar entre 1 y ${N}.`;return;}
+  const w=parseFloat(wv);
+  if(isNaN(w)){err.textContent="El peso debe ser un número.";return;}
+  const ex=edges.find(e=>(e.a===a&&e.b===b)||(e.a===b&&e.b===a));
+  if(ex)ex.w=w; else edges.push({a:String(ia),b:String(ib),w});
+  $("ea").value="";$("eb").value="";$("ew").value="";$("ea").focus();
+  renderEdges();
+}
+
+/* ---------- resultado ---------- */
+function generate(){
+  const NODES=allNodes();
+  solution = method==="kruskal"?kruskal(edges,NODES,goal):prim(edges,$("start").value||NODES[0],NODES,goal);
+  renderResult();
+  if(!THREEctx) buildScene(); else rebuildGraph();
+  if(THREEctx&&THREEctx.resize){THREEctx.resize();requestAnimationFrame(THREEctx.resize);}
+  const reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if(!reduce) setTimeout(animateMST,450);
+}
+function renderResult(){
+  const r=solution;
+  $("total").textContent=r?fmt(r.tot):"—";
+  $("totlbl").textContent="peso total "+(r&&r.goal==="max"?"máximo":"mínimo");
+  $("total").style.color=(r&&r.goal==="max")?"#3f5f9e":"var(--pink-ink)";
+  const warn=$("warn");warn.innerHTML="";
+  if(r&&!r.connected){
+    const d=document.createElement("div");d.className="warn";
+    d.textContent="El grafo no está conectado: no existe un árbol que una todos los nodos. Se muestra el bosque mínimo (lo que sí se puede conectar).";
+    warn.append(d);
+  }
+  const pills=$("pills");pills.innerHTML="";
+  if(r)r.mst.forEach(e=>{const s=document.createElement("span");s.className="pill"+(r.goal==="max"?" max":"");s.textContent=`${e.a}–${e.b}:${fmt(e.w)}`;pills.append(s);});
+  renderSteps();renderMatrix();
+}
+function renderSteps(){
+  const box=$("steps");box.innerHTML="";
+  if(!solution)return;
+  const gw=solution.goal==="max"?"máximo":"mínimo";
+  if(solution.kind==="kruskal"){
+    $("stepsTitle").textContent="Pasos (Kruskal · "+gw+")";
+    let h="<table><thead><tr><th>#</th><th>Arista</th><th>Peso</th><th>Decisión</th></tr></thead><tbody>";
+    solution.steps.forEach((s,i)=>{
+      const cls=s.d==="add"?"add":s.d==="cycle"?"cyc":"skip";
+      const dec=s.d==="add"?`✓ entra (${s.k})`:s.d==="cycle"?"✗ ciclo":"—";
+      h+=`<tr class="${cls}"><td>${i+1}</td><td>${s.e.a}–${s.e.b}</td><td>${fmt(s.e.w)}</td><td class="dec">${dec}</td></tr>`;
+    });
+    box.innerHTML=h+"</tbody></table>";
+  }else{
+    $("stepsTitle").textContent=`Tabla de iteraciones (Prim · ${gw}, inicio ${solution.start})`;
+    const NODES=solution.N;
+    let h="<table><thead><tr><th>It</th>"+NODES.map(n=>`<th>${n}</th>`).join("")+"<th>Arista</th><th>Peso</th></tr></thead><tbody>";
+    solution.iters.forEach((it,i)=>{
+      h+=`<tr><td class="lead">${i+1}</td>`;
+      NODES.forEach(n=>{const v=it.snap[n];
+        if(v==="tree")h+=`<td class="tree">✓</td>`;
+        else if(v==="inf")h+=`<td class="inf">∞</td>`;
+        else if(typeof v==="string"&&v.startsWith("chosen:"))h+=`<td class="chosen">${fmt(+v.slice(7))}</td>`;
+        else h+=`<td>${fmt(v)}</td>`;});
+      h+=`<td class="lead" style="color:var(--pink-ink)">${it.arista}</td><td class="lead">${it.peso===""?"—":fmt(it.peso)}</td></tr>`;
+    });
+    box.innerHTML=h+"</tbody></table>";
+  }
+}
+function renderMatrix(){
+  const box=$("matrix");const NODES=allNodes();
+  if(NODES.length===0){box.innerHTML="<p class='empty'>Sin datos.</p>";return;}
+  const W={};NODES.forEach(a=>{W[a]={};NODES.forEach(b=>W[a][b]=a===b?0:null);});
+  edges.forEach(e=>{W[e.a][e.b]=e.w;W[e.b][e.a]=e.w;});
+  let h="<table><thead><tr><th></th>"+NODES.map(n=>`<th>${n}</th>`).join("")+"</tr></thead><tbody>";
+  NODES.forEach(a=>{h+=`<tr><th>${a}</th>`+NODES.map(b=>{const v=W[a][b];
+    if(v===0)return`<td class="tree">0</td>`;if(v===null)return`<td class="inf">–</td>`;
+    return`<td>${fmt(v)}</td>`;}).join("")+"</tr>";});
+  box.innerHTML=h+"</tbody></table>";
+}
+
+/* ---------- 3D ---------- */
+let THREEctx=null,sig="",POS={};
+function buildScene(){
+  const canvas=$("scene");
+  if(typeof THREE==="undefined"){canvas.replaceWith(Object.assign(document.createElement("div"),{textContent:"No se pudo cargar el visor 3D (sin internet).",style:"color:#9a8fc0;padding:20px;font-family:monospace"}));return;}
+  if(!THREEctx){
+    let renderer;
+    try{renderer=new THREE.WebGLRenderer({canvas,antialias:true});}
+    catch(e){canvas.outerHTML="<div style='color:#9a8fc0;padding:20px;font-family:monospace'>WebGL no disponible en este dispositivo.</div>";return;}
+    renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+    const scene=new THREE.Scene();scene.background=new THREE.Color(0xece6f7);
+    const cam=new THREE.PerspectiveCamera(45,1,0.1,2000);cam.position.set(0,6,46);
+    const ctr=new THREE.OrbitControls(cam,renderer.domElement);ctr.enableDamping=true;ctr.dampingFactor=.08;
+    scene.add(new THREE.AmbientLight(0xffffff,.95));
+    const dl=new THREE.DirectionalLight(0xffffff,.55);dl.position.set(18,28,22);scene.add(dl);
+    const dl2=new THREE.DirectionalLight(0xf3b9d6,.35);dl2.position.set(-22,-8,-18);scene.add(dl2);
+    const group=new THREE.Group();scene.add(group);
+    THREEctx={renderer,scene,cam,ctr,group,mstMeshes:[]};
+    const resize=()=>{const w=canvas.clientWidth||600,h=canvas.clientHeight||400;renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();};
+    THREEctx.resize=resize;
+    new ResizeObserver(resize).observe(canvas);resize();
+    (function loop(){requestAnimationFrame(loop);ctr.update();renderer.render(scene,cam);})();
+  }
+  rebuildGraph();
+}
+function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+function makeLabel(text,bg,fg,hgt,border){
+  const S=256,c=document.createElement("canvas");c.width=c.height=S;const x=c.getContext("2d");
+  x.font="600 92px 'IBM Plex Mono',monospace";const tw=x.measureText(text).width;
+  const h=130,w=Math.max(tw+54,110),px=(S-w)/2,py=(S-h)/2;
+  x.fillStyle=bg;roundRect(x,px,py,w,h,h/2);x.fill();
+  if(border){x.lineWidth=5;x.strokeStyle=border;x.stroke();}
+  x.fillStyle=fg;x.textAlign="center";x.textBaseline="middle";x.fillText(text,S/2,S/2+4);
+  const t=new THREE.CanvasTexture(c);t.minFilter=THREE.LinearFilter;t.anisotropy=4;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false,depthWrite:false}));
+  sp.scale.set(hgt*(w/h),hgt,1);sp.renderOrder=10;return sp;
+}
+function cylinder(p1,p2,r,color){
+  const dir=new THREE.Vector3().subVectors(p2,p1),len=dir.length();
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,12),
+    new THREE.MeshStandardMaterial({color,roughness:.5,metalness:.05,emissive:color,emissiveIntensity:.12}));
+  m.position.copy(p1).add(p2).multiplyScalar(.5);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.clone().normalize());return m;
+}
+function layout(NODES,E){
+  const same=JSON.stringify([NODES,E.map(e=>[e.a,e.b,e.w])]);
+  if(same===sig&&Object.keys(POS).length)return POS;sig=same;
+  const p={};NODES.forEach(n=>p[n]=new THREE.Vector3((Math.random()-.5)*20,(Math.random()-.5)*20,(Math.random()-.5)*20));
+  const iters=Math.min(600,200+NODES.length*18);
+  for(let it=0;it<iters;it++){
+    const disp={};NODES.forEach(n=>disp[n]=new THREE.Vector3());
+    for(let i=0;i<NODES.length;i++)for(let j=i+1;j<NODES.length;j++){
+      const a=p[NODES[i]],b=p[NODES[j]];const d=new THREE.Vector3().subVectors(a,b);let L=d.length()||.01;
+      const f=90/(L*L);d.multiplyScalar(f/L);disp[NODES[i]].add(d);disp[NODES[j]].sub(d);
+    }
+    E.forEach(e=>{const a=p[e.a],b=p[e.b];if(!a||!b)return;const d=new THREE.Vector3().subVectors(b,a);let L=d.length()||.01;
+      const f=(L-11)*.06;d.multiplyScalar(f/L);disp[e.a].add(d);disp[e.b].sub(d);});
+    const cool=Math.max(.25,2.2*(1-it/iters));
+    NODES.forEach(n=>{const dd=disp[n];let L=dd.length()||.01;dd.multiplyScalar(Math.min(L,cool)/L);p[n].add(dd);});
+  }
+  const c=new THREE.Vector3();NODES.forEach(n=>c.add(p[n]));c.multiplyScalar(1/NODES.length);
+  let maxR=1;NODES.forEach(n=>{p[n].sub(c);maxR=Math.max(maxR,p[n].length());});
+  const sc=15/maxR;NODES.forEach(n=>p[n].multiplyScalar(sc));
+  POS=p;return p;
+}
+function rebuildGraph(){
+  const ctx=THREEctx;if(!ctx)return;
+  const g=ctx.group;while(g.children.length)g.remove(g.children[0]);ctx.mstMeshes=[];
+  const NODES=allNodes(),E=edges;if(NODES.length===0)return;
+  const pos=layout(NODES,E);
+  const isMax=solution&&solution.goal==="max";
+  const mstColor=isMax?0x8fb8ef:0xef9ac4;
+  const mstSet=new Set((solution?solution.mst:[]).map(e=>key(e.a,e.b)));
+  const segPos=[];E.forEach(e=>{if(!mstSet.has(key(e.a,e.b))){segPos.push(pos[e.a].x,pos[e.a].y,pos[e.a].z,pos[e.b].x,pos[e.b].y,pos[e.b].z);}});
+  if(segPos.length){const geo=new THREE.BufferGeometry();geo.setAttribute("position",new THREE.Float32BufferAttribute(segPos,3));
+    g.add(new THREE.LineSegments(geo,new THREE.LineBasicMaterial({color:0xc6bde6,transparent:true,opacity:.7})));}
+  (solution?solution.mst:[]).forEach(e=>{const m=cylinder(pos[e.a],pos[e.b],.17,mstColor);g.add(m);ctx.mstMeshes.push(m);});
+  const sphGeo=new THREE.SphereGeometry(.64,24,24);
+  const sphMat=new THREE.MeshStandardMaterial({color:0xa89be6,roughness:.55,metalness:.05,emissive:0x8a7ad0,emissiveIntensity:.1});
+  NODES.forEach(n=>{const s=new THREE.Mesh(sphGeo,sphMat);s.position.copy(pos[n]);g.add(s);
+    const lb=makeLabel(n,"#ffffff","#5b4aa0",1.9,"#d9d0ef");lb.position.copy(pos[n]).add(new THREE.Vector3(0,1.5,0));g.add(lb);});
+  const wg=new THREE.Group();wg.name="weights";
+  E.forEach(e=>{const mid=new THREE.Vector3().addVectors(pos[e.a],pos[e.b]).multiplyScalar(.5);
+    const onMst=mstSet.has(key(e.a,e.b));
+    const wbg=onMst?(isMax?"#e2ecfb":"#fde3ee"):"#eef1fb";
+    const wfg=onMst?(isMax?"#3f5f9e":"#b24a7e"):"#7684a8";
+    const wbd=onMst?(isMax?"#c9dbf3":"#f3c3da"):"#d6def0";
+    const lb=makeLabel(fmt(e.w),wbg,wfg,1.35,wbd);lb.position.copy(mid);wg.add(lb);});
+  wg.visible=$("showW").checked;g.add(wg);
+}
+function flash(msg){const el=$("toast");if(!el)return;el.textContent=msg;el.classList.add("show");
+  clearTimeout(flash._t);flash._t=setTimeout(()=>el.classList.remove("show"),1900);}
+function animateMST(){
+  const ctx=THREEctx;if(!ctx)return;
+  const meshes=ctx.mstMeshes||[];
+  if(!meshes.length){flash("No hay árbol para animar");return;}
+  if(ctx._animT){clearInterval(ctx._animT);ctx._animT=null;}
+  meshes.forEach(m=>m.visible=false);
+  let i=0;
+  ctx._animT=setInterval(()=>{
+    if(i>=meshes.length){clearInterval(ctx._animT);ctx._animT=null;flash("Árbol completo · peso "+(solution?fmt(solution.tot):""));return;}
+    meshes[i].visible=true;i++;
+  },420);
+}
+
+/* ---------- FOTO → CLAUDE ---------- */
+function openSettings(){ $("apiKey").value=load("aem_key")||""; $("model").value=load("aem_model")||DEFAULT_MODEL; $("settings").classList.add("show"); }
+function closeSettings(){ $("settings").classList.remove("show"); }
+$("openSettings").onclick=openSettings;
+$("settings").addEventListener("click",e=>{if(e.target===$("settings"))closeSettings();});
+$("saveKey").onclick=()=>{store("aem_key",$("apiKey").value.trim()||null);store("aem_model",$("model").value.trim()||DEFAULT_MODEL);closeSettings();flashScan("");};
+$("clearKey").onclick=()=>{store("aem_key",null);$("apiKey").value="";};
+
+function flashScan(msg){$("errScan").textContent=msg;}
+
+$("scanBtn").onclick=()=>{
+  if(!load("aem_key")){ flashScan("Primero pega tu API key en Ajustes (⚙, arriba a la derecha)."); openSettings(); return; }
+  flashScan(""); $("photo").click();
+};
+$("photo").addEventListener("change",async e=>{
+  const file=e.target.files&&e.target.files[0];
+  e.target.value="";
+  if(!file)return;
+  await scanPhoto(file);
+});
+
+function readAsDataURL(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});}
+
+async function scanPhoto(file){
+  const apiKey=load("aem_key"); const model=load("aem_model")||DEFAULT_MODEL;
+  $("scanLoading").hidden=false; flashScan(""); $("scanBtn").disabled=true;
+  try{
+    const dataUrl=await readAsDataURL(file);
+    const m=/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.*)$/.exec(dataUrl);
+    if(!m) throw new Error("No se pudo leer la imagen.");
+    const media=m[1], b64=m[2];
+    const prompt=`Analiza esta foto de un grafo dibujado a mano (nodos numerados y aristas con un peso/número junto a cada línea). `+
+      `Devuelve SOLO un objeto JSON válido, sin texto adicional ni markdown, con esta forma exacta: `+
+      `{"nodes": <cantidad de nodos, entero>, "edges": [[origen, destino, peso], ...]}. `+
+      `Cada origen y destino es el número del nodo (entero). El peso es el número escrito junto a la arista. `+
+      `No inventes aristas que no estén dibujadas. Si un número es ambiguo, elige el más probable.`;
+    const resp=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{
+        "content-type":"application/json",
+        "x-api-key":apiKey,
+        "anthropic-version":"2023-06-01",
+        "anthropic-dangerous-direct-browser-access":"true"
+      },
+      body:JSON.stringify({
+        model, max_tokens:1500,
+        messages:[{role:"user",content:[
+          {type:"image",source:{type:"base64",media_type:media,data:b64}},
+          {type:"text",text:prompt}
+        ]}]
+      })
+    });
+    if(!resp.ok){
+      let detail="";try{const j=await resp.json();detail=j.error&&j.error.message?j.error.message:JSON.stringify(j);}catch(_){detail=await resp.text();}
+      throw new Error("API ("+resp.status+"): "+detail);
+    }
+    const data=await resp.json();
+    const text=(data.content||[]).filter(c=>c.type==="text").map(c=>c.text).join("\n");
+    const parsed=extractJSON(text);
+    applyScanned(parsed);
+  }catch(err){
+    flashScan("No se pudo leer: "+(err.message||err));
+  }finally{
+    $("scanLoading").hidden=true; $("scanBtn").disabled=false;
+  }
+}
+function extractJSON(text){
+  let t=text.trim().replace(/^```[a-z]*\s*/i,"").replace(/```\s*$/,"");
+  const a=t.indexOf("{"), b=t.lastIndexOf("}");
+  if(a>=0&&b>a) t=t.slice(a,b+1);
+  return JSON.parse(t);
+}
+function applyScanned(obj){
+  if(!obj||!Array.isArray(obj.edges)) throw new Error("respuesta sin aristas.");
+  const clean=[]; let maxN=parseInt(obj.nodes,10)||0;
+  obj.edges.forEach(e=>{
+    let a,b,w;
+    if(Array.isArray(e)){a=e[0];b=e[1];w=e[2];}
+    else{a=e.a??e.origen??e.from;b=e.b??e.destino??e.to;w=e.w??e.peso??e.weight;}
+    a=parseInt(a,10);b=parseInt(b,10);w=parseFloat(w);
+    if(!(a>=1&&b>=1)||a===b||isNaN(w))return;
+    maxN=Math.max(maxN,a,b);
+    if(!clean.find(x=>(x.a===String(a)&&x.b===String(b))||(x.a===String(b)&&x.b===String(a))))
+      clean.push({a:String(a),b:String(b),w});
+  });
+  if(!clean.length) throw new Error("no se detectaron aristas válidas.");
+  N=Math.max(maxN,2); edges=clean; $("ncount").value=String(N);
+  goto(2);
+  flash("Detecté "+clean.length+" aristas · revísalas");
+}
+
+/* ---------- wiring ---------- */
+function setMethod(m){method=m;$("mk").setAttribute("aria-pressed",m==="kruskal");$("mp").setAttribute("aria-pressed",m==="prim");$("startWrap").hidden=(m!=="prim");}
+function setGoal(g){goal=g;$("gmin").setAttribute("aria-pressed",g==="min");$("gmax").setAttribute("aria-pressed",g==="max");}
+
+$("to2").onclick=()=>{const v=parseInt($("ncount").value,10);const e=$("err1");e.textContent="";
+  if(!(v>=2&&v<=60)){e.textContent="Escribe un número de nodos entre 2 y 60.";return;}N=v;goto(2);};
+$("back1").onclick=()=>goto(1);
+$("to3").onclick=()=>{const e=$("err2");e.textContent="";if(edges.length<1){e.textContent="Agrega al menos una arista.";return;}goto(3);};
+$("back2").onclick=()=>goto(2);
+$("generate").onclick=()=>goto(4);
+$("editData").onclick=()=>goto(2);
+$("add").onclick=addEdge;
+["ea","eb","ew"].forEach(id=>$(id).addEventListener("keydown",e=>{if(e.key==="Enter")addEdge();}));
+$("ncount").addEventListener("keydown",e=>{if(e.key==="Enter")$("to2").click();});
+$("mk").onclick=()=>setMethod("kruskal");
+$("mp").onclick=()=>setMethod("prim");
+$("gmin").onclick=()=>setGoal("min");
+$("gmax").onclick=()=>setGoal("max");
+$("showW").onchange=()=>{const w=THREEctx&&THREEctx.group.children.find(c=>c.name==="weights");if(w)w.visible=$("showW").checked;};
+$("anim").onclick=animateMST;
+$("exampleBtn").onclick=()=>{N=6;edges=EXAMPLE6.map(e=>({...e}));setMethod("kruskal");setGoal("min");$("ncount").value="6";goto(4);};
+
+setMethod("kruskal");setGoal("min");goto(1);
+
+if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{});});}
+</script>
+</body>
+</html>
