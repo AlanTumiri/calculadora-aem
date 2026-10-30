@@ -285,7 +285,7 @@ summary{cursor:pointer;font-family:var(--disp);font-size:14px;font-weight:700;co
     </div>
   </div>
 
-  <p class="foot">AEM = árbol que conecta todos los nodos, sin ciclos, con el menor (o mayor) peso total. Aristas = nodos − 1. · <b>v6</b></p>
+  <p class="foot">AEM = árbol que conecta todos los nodos, sin ciclos, con el menor (o mayor) peso total. Aristas = nodos − 1. · <b>v7</b></p>
 </div>
 
 <!-- AJUSTES -->
@@ -633,8 +633,36 @@ async function resizeToB64(file,maxDim=1600){
   return c.toDataURL("image/jpeg",0.9);
 }
 
+async function callGemini(model,apiKey,media,b64,prompt){
+  const url="https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(model)+":generateContent?key="+encodeURIComponent(apiKey);
+  let resp;
+  try{
+    resp=await fetch(url,{
+      method:"POST",
+      headers:{"content-type":"application/json"},
+      body:JSON.stringify({
+        contents:[{parts:[{text:prompt},{inline_data:{mime_type:media,data:b64}}]}],
+        generationConfig:{temperature:0}
+      })
+    });
+  }catch(e){
+    return {net:true,error:"Sin conexión o bloqueo de red ("+(e.message||e)+")"};
+  }
+  if(!resp.ok){
+    let detail="";try{const j=await resp.json();detail=j.error&&j.error.message?j.error.message:JSON.stringify(j);}catch(_){try{detail=await resp.text();}catch(__){detail="";}}
+    return {status:resp.status,error:"API ("+resp.status+"): "+detail};
+  }
+  const data=await resp.json();
+  const cand=(data.candidates||[])[0]||{};
+  const parts=(cand.content&&cand.content.parts)||[];
+  const text=parts.map(p=>p.text).filter(Boolean).join("\n");
+  if(!text) return {status:200,error:"El modelo no devolvió texto (quizá bloqueó la imagen)."};
+  return {text};
+}
 async function scanPhoto(file){
-  const apiKey=getKey(); const model=getModel();
+  const apiKey=getKey();
+  const userModel=(load("aem_model")||"").trim();
+  const models = userModel ? [userModel] : ["gemini-2.0-flash","gemini-2.5-flash","gemini-flash-latest","gemini-1.5-flash"];
   $("scanLoading").hidden=false; flashScan(""); $("scanBtn").disabled=true; $("uploadBtn").disabled=true;
   try{
     let media,b64;
@@ -643,7 +671,6 @@ async function scanPhoto(file){
       const m=/^data:([^;]+);base64,(.*)$/.exec(dataUrl);
       media=m[1]; b64=m[2];
     }catch(_){
-      // formato que el navegador no redibuja (p.ej. HEIC): enviar bytes originales
       const dataUrl=await readAsDataURL(file);
       const m=/^data:([^;]+);base64,(.*)$/.exec(dataUrl);
       if(!m) throw new Error("Formato de imagen no soportado.");
@@ -655,29 +682,16 @@ async function scanPhoto(file){
       `{"nodes": <cantidad de nodos, entero>, "edges": [[origen, destino, peso], ...]}. `+
       `Cada origen y destino es el número del nodo (entero). El peso es el número escrito junto a la arista. `+
       `No inventes aristas que no estén dibujadas. Si un número es ambiguo, elige el más probable.`;
-    const url="https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(model)+":generateContent?key="+encodeURIComponent(apiKey);
-    const resp=await fetch(url,{
-      method:"POST",
-      headers:{"content-type":"application/json"},
-      body:JSON.stringify({
-        contents:[{parts:[
-          {text:prompt},
-          {inline_data:{mime_type:media,data:b64}}
-        ]}],
-        generationConfig:{temperature:0}
-      })
-    });
-    if(!resp.ok){
-      let detail="";try{const j=await resp.json();detail=j.error&&j.error.message?j.error.message:JSON.stringify(j);}catch(_){detail=await resp.text();}
-      throw new Error("API ("+resp.status+"): "+detail);
+    let lastErr="", text=null;
+    for(const model of models){
+      const r=await callGemini(model,apiKey,media,b64,prompt);
+      if(r.text){text=r.text;break;}
+      lastErr=r.error||"error desconocido";
+      // si es un error de llave/permiso/red, no tiene sentido probar otros modelos
+      if(r.net || r.status===401 || r.status===403) break;
     }
-    const data=await resp.json();
-    const cand=(data.candidates||[])[0]||{};
-    const parts=(cand.content&&cand.content.parts)||[];
-    const text=parts.map(p=>p.text).filter(Boolean).join("\n");
-    if(!text) throw new Error("respuesta vacía del modelo.");
-    const parsed=extractJSON(text);
-    applyScanned(parsed);
+    if(text==null) throw new Error(lastErr);
+    applyScanned(extractJSON(text));
   }catch(err){
     flashScan("No se pudo leer: "+(err.message||err));
   }finally{
