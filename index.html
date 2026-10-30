@@ -70,6 +70,16 @@ input::placeholder{color:#b7afca}
   display:flex;align-items:center;gap:8px}
 .scan-row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
 .scan-row .btn{flex:1;min-width:140px;margin-top:0}
+[hidden]{display:none!important}
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+@media (max-width:520px){.mode-grid{grid-template-columns:1fr}}
+.mode-card{display:flex;flex-direction:column;align-items:flex-start;gap:5px;text-align:left;
+  background:var(--surface-2);border:none;border-radius:16px;padding:20px 18px;cursor:pointer;
+  font-family:var(--disp);font-weight:700;font-size:17px;color:var(--accent-ink);transition:filter .14s,transform .05s}
+.mode-card .emoji{font-size:30px;line-height:1}
+.mode-card small{font-family:var(--sans);font-weight:500;font-size:13px;color:var(--muted)}
+.mode-card:hover{filter:brightness(1.03)}
+.mode-card:active{transform:translateY(1px)}
 .btn-link{background:none;color:var(--accent-ink);padding:10px 4px;font-weight:600}
 .btn-link:hover{text-decoration:underline}
 .nav{display:flex;justify-content:space-between;gap:10px;margin-top:22px;flex-wrap:wrap}
@@ -167,24 +177,39 @@ summary{cursor:pointer;font-family:var(--disp);font-size:14px;font-weight:700;co
   </div>
 
   <div class="card" id="wizard">
-    <section class="step" id="step1">
+    <section class="step" id="step0">
+      <h2>¿Cómo quieres ingresar tu grafo?</h2>
+      <p class="hint">Elige una forma. Después podrás revisarlo y resolverlo igual.</p>
+      <div class="mode-grid">
+        <button class="mode-card" id="modePhoto"><span class="emoji">📷</span>Por fotografía<small>Toma o sube una foto del grafo y la app la lee</small></button>
+        <button class="mode-card" id="modeManual"><span class="emoji">✍️</span>Manualmente<small>Escribe los nodos y las aristas a mano</small></button>
+      </div>
+
+      <div id="scanArea" hidden>
+        <div class="divider">lee tu grafo de una imagen</div>
+        <div class="scan-row">
+          <button class="btn btn-pink" id="scanBtn">📷 Tomar foto</button>
+          <button class="btn btn-pink" id="uploadBtn">🖼 Cargar foto</button>
+        </div>
+        <div class="err" id="errScan"></div>
+        <div id="scanLoading" hidden class="loading"><span class="spin"></span><span>Leyendo la imagen con Gemini…</span></div>
+        <input type="file" id="photoCam" accept="image/*" capture="environment" hidden>
+        <input type="file" id="photoLib" accept="image/*" hidden>
+        <div class="nav"><button class="btn btn-link" id="backToMode">← Volver</button></div>
+      </div>
+
+      <div class="nav">
+        <button class="btn btn-link" id="exampleBtn">Ver ejemplo resuelto</button>
+      </div>
+    </section>
+
+    <section class="step" id="step1" hidden>
       <h2>Paso 1 · ¿Cuántos nodos?</h2>
       <p class="hint">Se numerarán del 1 en adelante. Podrás conectarlos en el siguiente paso.</p>
       <div class="big-input"><input id="ncount" class="mono" inputmode="numeric" value="6"></div>
       <div class="err" id="err1"></div>
-
-      <div class="divider">o lee tu grafo de una imagen</div>
-      <div class="scan-row">
-        <button class="btn btn-pink" id="scanBtn">📷 Tomar foto</button>
-        <button class="btn btn-pink" id="uploadBtn">🖼 Cargar foto</button>
-      </div>
-      <div class="err" id="errScan"></div>
-      <div id="scanLoading" hidden class="loading"><span class="spin"></span><span>Leyendo la imagen con Gemini…</span></div>
-      <input type="file" id="photoCam" accept="image/*" capture="environment" hidden>
-      <input type="file" id="photoLib" accept="image/*" hidden>
-
       <div class="nav">
-        <button class="btn btn-link" id="exampleBtn">Ver ejemplo resuelto</button>
+        <button class="btn btn-ghost" id="back1">← Atrás</button>
         <button class="btn btn-primary" id="to2">Siguiente →</button>
       </div>
     </section>
@@ -344,10 +369,13 @@ function prim(E,start,NODES,goal){
 /* ---------- navegación ---------- */
 function goto(s){
   cur=s;
+  document.querySelector(".prog").hidden=(s===0);
   $("wizard").hidden=(s===4);
   $("step4").hidden=(s!==4);
+  $("step0").hidden=s!==0;
   $("step1").hidden=s!==1;$("step2").hidden=s!==2;$("step3").hidden=s!==3;
-  [1,2,3,4].forEach(i=>{const el=$("p"+i);el.classList.toggle("active",i===s);el.classList.toggle("done",i<s);});
+  [1,2,3,4].forEach(i=>{const el=$("p"+i);el.classList.toggle("active",i===s);el.classList.toggle("done",s!==0&&i<s);});
+  if(s===0)$("scanArea").hidden=true;
   if(s===2)renderEdges();
   if(s===3)refreshStart();
   if(s===4)generate();
@@ -684,9 +712,12 @@ function applyScanned(obj){
 function setMethod(m){method=m;$("mk").setAttribute("aria-pressed",m==="kruskal");$("mp").setAttribute("aria-pressed",m==="prim");$("startWrap").hidden=(m!=="prim");}
 function setGoal(g){goal=g;$("gmin").setAttribute("aria-pressed",g==="min");$("gmax").setAttribute("aria-pressed",g==="max");}
 
+$("modePhoto").onclick=()=>{$("scanArea").hidden=false;$("scanArea").scrollIntoView({behavior:"smooth",block:"nearest"});};
+$("modeManual").onclick=()=>{N=6;edges=[];$("ncount").value="6";goto(1);};
+$("backToMode").onclick=()=>{$("scanArea").hidden=true;flashScan("");};
 $("to2").onclick=()=>{const v=parseInt($("ncount").value,10);const e=$("err1");e.textContent="";
   if(!(v>=2&&v<=60)){e.textContent="Escribe un número de nodos entre 2 y 60.";return;}N=v;goto(2);};
-$("back1").onclick=()=>goto(1);
+$("back1").onclick=()=>goto(0);
 $("to3").onclick=()=>{const e=$("err2");e.textContent="";if(edges.length<1){e.textContent="Agrega al menos una arista.";return;}goto(3);};
 $("back2").onclick=()=>goto(2);
 $("generate").onclick=()=>goto(4);
@@ -702,7 +733,7 @@ $("showW").onchange=()=>{const w=THREEctx&&THREEctx.group.children.find(c=>c.nam
 $("anim").onclick=animateMST;
 $("exampleBtn").onclick=()=>{N=6;edges=EXAMPLE6.map(e=>({...e}));setMethod("kruskal");setGoal("min");$("ncount").value="6";goto(4);};
 
-setMethod("kruskal");setGoal("min");goto(1);
+setMethod("kruskal");setGoal("min");goto(0);
 
 if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{});});}
 </script>
